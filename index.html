@@ -187,6 +187,60 @@
       margin-top: 5px;
     }
 
+    /* Success Message Modal Styles */
+    .success-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .success-modal-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      position: relative;
+      animation: fadeIn 0.5s;
+    }
+    .success-icon {
+      font-size: 60px;
+      color: #4CAF50;
+      margin-bottom: 20px;
+    }
+    .success-title {
+      font-size: 24px;
+      color: #0056b3;
+      margin-bottom: 15px;
+    }
+    .success-message {
+      font-size: 16px;
+      color: #555;
+      margin-bottom: 25px;
+      line-height: 1.6;
+    }
+    .email-highlight {
+      font-weight: bold;
+      color: #0056b3;
+    }
+    .timer {
+      font-size: 14px;
+      color: #777;
+      margin-top: 20px;
+    }
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(-20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
     @media (max-width: 768px) {
       .container {
         flex-direction: column;
@@ -242,7 +296,7 @@
       </div>
       <div class="input-group">
         <label for="amount">Amount (INR)</label>
-        <input type="number" id="amount" value="3,999" min="1">
+        <input type="text" id="amount" value="3,999" readonly style="background-color: #f9f9f9;">
       </div>
       <button id="payButton" class="pay-button">Pay ₹ 3,999.00</button>
       <div class="payment-logos">
@@ -256,203 +310,248 @@
   </div>
 </div>
 
-    <script>
-        const SPRING_BOOT_BASE_URL = 'https://flowofenglish.thechippersage.com';
-        const PROGRAM_ID = 'PET-Level-1';
-        const ORG_ID = 'SVCE';
+<!-- Success Modal -->
+<div id="successModal" class="success-modal">
+    <div class="success-modal-content">
+      <div class="success-icon">✓</div>
+      <h2 class="success-title">Enrollment Successful!</h2>
+      <p class="success-message">
+        Congratulations! You have successfully enrolled for the Professional English for Teachers - L1 program. 
+        A welcome email has been sent to <span id="userEmailDisplay" class="email-highlight"></span>. 
+        Please check your email to access your learning journey with Chippersage.
+      </p>
+      <p class="timer">Redirecting to sign-in page in <span id="countdown">30</span> seconds...</p>
+    </div>
+    </div>
 
-        function updateResponse(message) {
-            const responseDiv = document.getElementById('response');
-            responseDiv.innerHTML += `<p>${new Date().toLocaleTimeString()}: ${message}</p>`;
+<script>
+    const SPRING_BOOT_BASE_URL = 'https://flowofenglish.thechippersage.com';
+    const PROGRAM_ID = 'PET-Level-1';
+    const ORG_ID = 'SVCE';
+    const SIGN_IN_URL = 'https://flowofenglish.thechippersage.com';
+
+    function updateResponse(message) {
+        const responseDiv = document.getElementById('response');
+        responseDiv.innerHTML += `<p>${new Date().toLocaleTimeString()}: ${message}</p>`;
+    }
+
+    // Function to display error messages
+    function displayError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        // Remove any existing error message
+        removeError(fieldId);
+        
+        // Create error message element
+        const errorElement = document.createElement('div');
+        errorElement.className = 'error-message';
+        errorElement.textContent = message;
+        
+        // Insert error message after the input field
+        field.parentElement.appendChild(errorElement);
+        
+        // Highlight the input field
+        field.style.borderColor = '#e74c3c';
+    }
+
+    // Function to remove error message for a specific field
+    function removeError(fieldId) {
+        const field = document.getElementById(fieldId);
+        const errorElement = field.parentElement.querySelector('.error-message');
+        if (errorElement) {
+            errorElement.remove();
         }
+        field.style.borderColor = '';
+    }
 
-        // Function to display error messages
-        function displayError(fieldId, message) {
-            const field = document.getElementById(fieldId);
-            // Remove any existing error message
-            removeError(fieldId);
-            
-            // Create error message element
-            const errorElement = document.createElement('div');
-            errorElement.className = 'error-message';
-            errorElement.textContent = message;
-            
-            // Insert error message after the input field
-            field.parentElement.appendChild(errorElement);
-            
-            // Highlight the input field
-            field.style.borderColor = '#e74c3c';
+    // Function to clear all error messages
+    function clearErrors() {
+        const errorElements = document.querySelectorAll('.error-message');
+        errorElements.forEach(element => element.remove());
+        
+        const inputFields = document.querySelectorAll('input, textarea');
+        inputFields.forEach(field => field.style.borderColor = '');
+    }
+
+    // Email validation function
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    // Phone validation function for Indian numbers
+    function isValidPhone(phone) {
+        // For Indian numbers: 10 digits, optionally prefixed with +91 or 0
+        const phoneRegex = /^(?:(?:\+|0{0,2})91(\s*[-]\s*)?|[0]?)?[6789]\d{9}$/;
+        return phoneRegex.test(phone);
+    }
+
+    // Form validation function
+    function validateForm() {
+        clearErrors();
+        
+        const name = document.getElementById('userName').value.trim();
+        const email = document.getElementById('userEmail').value.trim();
+        const phone = document.getElementById('userPhone').value.trim();
+        // Address is optional, so no validation needed
+        
+        let isValid = true;
+        
+        // Name validation - can't be empty
+        if (!name) {
+            displayError('userName', 'Name is required');
+            isValid = false;
         }
+        
+        // Email validation
+        if (!email) {
+            displayError('userEmail', 'Email is required');
+            isValid = false;
+        } else if (!isValidEmail(email)) {
+            displayError('userEmail', 'Please enter a valid email address');
+            isValid = false;
+        }
+        
+        // Phone validation
+        if (!phone) {
+            displayError('userPhone', 'Phone number is required');
+            isValid = false;
+        } else if (!isValidPhone(phone)) {
+            displayError('userPhone', 'Please enter a valid 10-digit phone number');
+            isValid = false;
+        }
+        
+        return isValid;
+    }
 
-        // Function to remove error message for a specific field
-        function removeError(fieldId) {
-            const field = document.getElementById(fieldId);
-            const errorElement = field.parentElement.querySelector('.error-message');
-            if (errorElement) {
-                errorElement.remove();
+    // Function to show success modal with countdown
+    function showSuccessModal(email) {
+        const modal = document.getElementById('successModal');
+        const emailDisplay = document.getElementById('userEmailDisplay');
+        const countdownElement = document.getElementById('countdown');
+        
+        // Set the user's email in the success message
+        emailDisplay.textContent = email;
+        
+        // Show the modal
+        modal.style.display = 'flex';
+        
+        // Start countdown
+        let secondsLeft = 30;
+        const countdownInterval = setInterval(() => {
+            secondsLeft--;
+            countdownElement.textContent = secondsLeft;
+            
+            if (secondsLeft <= 0) {
+                clearInterval(countdownInterval);
+                window.location.href = SIGN_IN_URL;
             }
-            field.style.borderColor = '';
+        }, 1000);
+    }
+
+    document.getElementById('payButton').onclick = function () {
+        // First validate the form
+        if (!validateForm()) {
+            return; // Stop payment process if validation fails
         }
+        
+        const amount = document.getElementById('amount').value;
+        const name = document.getElementById('userName').value;
+        const email = document.getElementById('userEmail').value;
+        const phone = document.getElementById('userPhone').value;
+        const address = document.getElementById('userAddress').value;
 
-        // Function to clear all error messages
-        function clearErrors() {
-            const errorElements = document.querySelectorAll('.error-message');
-            errorElements.forEach(element => element.remove());
-            
-            const inputFields = document.querySelectorAll('input, textarea');
-            inputFields.forEach(field => field.style.borderColor = '');
-        }
+        updateResponse(`Creating order for ₹${amount}...`);
 
-        // Email validation function
-        function isValidEmail(email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return emailRegex.test(email);
-        }
-
-        // Phone validation function for Indian numbers
-        function isValidPhone(phone) {
-            // For Indian numbers: 10 digits, optionally prefixed with +91 or 0
-            const phoneRegex = /^(?:(?:\+|0{0,2})91(\s*[-]\s*)?|[0]?)?[6789]\d{9}$/;
-            return phoneRegex.test(phone);
-        }
-
-        // Form validation function
-        function validateForm() {
-            clearErrors();
-            
-            const name = document.getElementById('userName').value.trim();
-            const email = document.getElementById('userEmail').value.trim();
-            const phone = document.getElementById('userPhone').value.trim();
-            // Address is optional, so no validation needed
-            
-            let isValid = true;
-            
-            // Name validation - can't be empty
-            if (!name) {
-                displayError('userName', 'Name is required');
-                isValid = false;
-            }
-            
-            // Email validation
-            if (!email) {
-                displayError('userEmail', 'Email is required');
-                isValid = false;
-            } else if (!isValidEmail(email)) {
-                displayError('userEmail', 'Please enter a valid email address');
-                isValid = false;
-            }
-            
-            // Phone validation
-            if (!phone) {
-                displayError('userPhone', 'Phone number is required');
-                isValid = false;
-            } else if (!isValidPhone(phone)) {
-                displayError('userPhone', 'Please enter a valid 10-digit phone number');
-                isValid = false;
-            }
-            
-            return isValid;
-        }
-
-        document.getElementById('payButton').onclick = function () {
-            // First validate the form
-            if (!validateForm()) {
-                return; // Stop payment process if validation fails
-            }
-            
-            const amount = document.getElementById('amount').value;
-            const name = document.getElementById('userName').value;
-            const email = document.getElementById('userEmail').value;
-            const phone = document.getElementById('userPhone').value;
-            const address = document.getElementById('userAddress').value;
-
-            updateResponse(`Creating order for ₹${amount}...`);
-
-            fetch(`${SPRING_BOOT_BASE_URL}/api/v1/payments/createSubscriptionOrder`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    amount: amount,
-                    currency: 'INR',
-                    programId: PROGRAM_ID,
-                    organizationId: ORG_ID,
-                    userName: name,
-                    userEmail: email,
-                    userPhone: phone,
-                    userAddress: address
-                })
+        fetch(`${SPRING_BOOT_BASE_URL}/api/v1/payments/createSubscriptionOrder`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                amount: amount,
+                currency: 'INR',
+                programId: PROGRAM_ID,
+                organizationId: ORG_ID,
+                userName: name,
+                userEmail: email,
+                userPhone: phone,
+                userAddress: address
             })
-                .then(response => response.json())
-                .then(orderData => {
-                    updateResponse(`Order created. Order ID: ${orderData.id}`);
+        })
+            .then(response => response.json())
+            .then(orderData => {
+                updateResponse(`Order created. Order ID: ${orderData.id}`);
 
-                    const options = {
-                        key: 'rzp_test_UCyO771J6mtj5d',
-                        amount: orderData.amount,
-                        currency: orderData.currency,
-                        name: 'Flow of English',
-                        description: 'Program Subscription',
-                        order_id: orderData.id,
-                        handler: function (response) {
-                            updateResponse('Payment successful. Verifying...');
-                            verifyPayment(orderData.id, response.razorpay_payment_id, response.razorpay_signature);
-                        },
-                        prefill: {
-                            name,
-                            email,
-                            contact: phone
-                        },
-                        notes: {
-                            name,
-                            email,
-                            contact: phone,
-                            address,
-                            program_id: PROGRAM_ID,
-                            organization_id: ORG_ID
-                        },
-                        theme: {
-                            color: '#3399cc'
-                        }
-                    };
+                const options = {
+                    key: 'rzp_test_UCyO771J6mtj5d',
+                    amount: orderData.amount,
+                    currency: orderData.currency,
+                    name: 'Flow of English',
+                    description: 'Program Subscription',
+                    order_id: orderData.id,
+                    handler: function (response) {
+                        updateResponse('Payment successful. Verifying...');
+                        verifyPayment(orderData.id, response.razorpay_payment_id, response.razorpay_signature, email);
+                    },
+                    prefill: {
+                        name,
+                        email,
+                        contact: phone
+                    },
+                    notes: {
+                        name,
+                        email,
+                        contact: phone,
+                        address,
+                        program_id: PROGRAM_ID,
+                        organization_id: ORG_ID
+                    },
+                    theme: {
+                        color: '#3399cc'
+                    }
+                };
 
-                    const rzp = new Razorpay(options);
-                    rzp.on('payment.failed', function (response) {
-                        updateResponse('Payment failed');
-                        alert("Payment failed: " + JSON.stringify(response.error, null, 2));
-                    });
-
-                    rzp.open();
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    updateResponse(`Error: ${error.message}`);
+                const rzp = new Razorpay(options);
+                rzp.on('payment.failed', function (response) {
+                    updateResponse('Payment failed');
+                    alert("Payment failed: " + JSON.stringify(response.error, null, 2));
                 });
-        };
 
-        function verifyPayment(orderId, paymentId, signature) {
-            const body = new URLSearchParams({
-                orderId,
-                paymentId,
-                razorpaySignature: signature
+                rzp.open();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                updateResponse(`Error: ${error.message}`);
             });
+    };
 
-            fetch(`${SPRING_BOOT_BASE_URL}/api/v1/payments/verify`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body
+    function verifyPayment(orderId, paymentId, signature, email) {
+        const body = new URLSearchParams({
+            orderId,
+            paymentId,
+            razorpaySignature: signature
+        });
+
+        fetch(`${SPRING_BOOT_BASE_URL}/api/v1/payments/verify`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body
+        })
+            .then(response => response.text())
+            .then(result => {
+                updateResponse('Verification result: ' + result);
+                
+                // If payment verification was successful, show success modal
+                if (result.includes('successful') || result.includes('success')) {
+                    showSuccessModal(email);
+                }
             })
-                .then(response => response.text())
-                .then(result => {
-                    updateResponse('Verification result: ' + result);
-                })
-                .catch(error => {
-                    updateResponse('Verification error: ' + error.message);
-                });
-        }
-    </script>
+            .catch(error => {
+                updateResponse('Verification error: ' + error.message);
+            });
+    }
+</script>
 </body>
 </html>
