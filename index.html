@@ -295,9 +295,9 @@
         <textarea id="userAddress"></textarea>
       </div>
       <div class="input-group">
-        <label for="amount">Amount (INR)</label>
-        <input type="text" id="amount" value="3,999" readonly style="background-color: #f9f9f9;">
-      </div>
+      <label for="amount">Amount (INR)</label>
+      <input type="text" id="amount" value="3999.00" readonly style="background-color: #f9f9f9;">
+    </div>
       <button id="payButton" class="pay-button">Pay ₹ 3,999.00</button>
       <div class="payment-logos">
         <img src="Images/upi-logo.png" alt="UPI">
@@ -312,17 +312,17 @@
 
 <!-- Success Modal -->
 <div id="successModal" class="success-modal">
-    <div class="success-modal-content">
-      <div class="success-icon">✓</div>
-      <h2 class="success-title">Enrollment Successful!</h2>
-      <p class="success-message">
-        Congratulations! You have successfully enrolled for the Professional English for Teachers - L1 program. 
-        A welcome email has been sent to <span id="userEmailDisplay" class="email-highlight"></span>. 
-        Please check your email to access your learning journey with Chippersage.
-      </p>
-      <p class="timer">Redirecting to sign-in page in <span id="countdown">30</span> seconds...</p>
-    </div>
-    </div>
+  <div class="success-modal-content">
+    <div class="success-icon">✓</div>
+    <h2 class="success-title">Enrollment Successful!</h2>
+    <p class="success-message">
+      Congratulations! You have successfully enrolled for the Professional English for Teachers - L1 program. 
+      A welcome email has been sent to <span id="userEmailDisplay" class="email-highlight"></span>. 
+      Please check your email to access your learning journey with Chippersage.
+    </p>
+    <p class="timer">Redirecting to sign-in page in <span id="countdown">10</span> seconds...</p>
+  </div>
+</div>
 
 <script>
     const SPRING_BOOT_BASE_URL = 'https://flowofenglish.thechippersage.com';
@@ -436,7 +436,7 @@
         modal.style.display = 'flex';
         
         // Start countdown
-        let secondsLeft = 30;
+        let secondsLeft = 10;
         const countdownInterval = setInterval(() => {
             secondsLeft--;
             countdownElement.textContent = secondsLeft;
